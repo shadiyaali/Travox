@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
-
+from django.core.exceptions import ValidationError
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -52,13 +52,16 @@ class Admin(models.Model):
         return self.username
 
 
+from django.db import models
+
 class Subscription(models.Model):
- 
-    plan_name = models.CharField(max_length=100, unique=True) 
+    plan_name = models.CharField(max_length=100, unique=True)
     duration = models.PositiveIntegerField(help_text="Duration in months")
+    rate = models.IntegerField(default=True)
 
     def __str__(self):
-        return f"{self.plan_name} ({self.duration} months)"
+        return f"{self.plan_name} ({self.duration} months, Rate: {self.rate})"
+
     
 class Users(models.Model):
     STATUS_CHOICES = [
@@ -138,3 +141,118 @@ class Staff(models.Model):
     def __str__(self):
         return self.username
     
+    
+class Banking(models.Model):
+    account_number = models.CharField(max_length=20, unique=True )
+    account_holder_name = models.CharField(max_length=100 ,blank=True, null=True)
+    bank_name = models.CharField(max_length=100 ,blank=True, null=True)
+    branch_name = models.CharField(max_length=100 ,blank=True, null=True)
+    ifsc_code = models.CharField(max_length=11,blank=True, null=True )
+
+    def __str__(self):
+        return f"{self.account_holder_name} - {self.bank_name}"
+    
+    
+class Invoice(models.Model):
+    STATUS_CHOICES = [
+        ('paid', 'Paid'),
+        ('unpaid', 'Unpaid'),
+        ('partially paid','Partially Paid')
+    ]
+    customer_name = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True, blank=True)
+    invoice_number = models.CharField(max_length=11, blank=True, null=True)
+    invoice_date = models.DateField()
+    terms = models.CharField(max_length=255, choices=[('Next 15', 'Next 15'), ('Next 30', 'Next 30'), ('Due on Receipt', 'Due on Receipt'), ('Due end of the month', 'Due end of the month')])
+    due_date = models.DateField()
+    sales_person = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True)
+    quotation_no = models.CharField(max_length=11, blank=True, null=True)
+    lpo_number =models.CharField(max_length=11, blank=True, null=True)
+    lpo_date = models.DateField(blank=True, null=True)
+    subject = models.TextField()
+    item = models.ForeignKey(Subscription, on_delete=models.SET_NULL, null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    sub_total = models.IntegerField(default=True)  
+    tax = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Tax percentage (e.g., 15.25 for 15.25%)")
+    notes = models.TextField(blank=True, null=True)
+    discount = models.IntegerField(default=True) 
+    total = models.IntegerField(default=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='paid')
+
+    def __str__(self):
+        return f"Invoice {self.invoice_number} for {self.customer_name}"
+
+    def clean(self):
+        if self.sales_person and self.sales_person.staff_role != "Sales Staff":
+            raise ValidationError({"sales_person": "The selected staff member is not a Sales Staff."})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+        
+
+class PaymentReceived(models.Model):
+    customer_name = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True, blank=True)
+    amount_received = models.IntegerField(default=0)  
+    payment_date = models.DateField()
+    payment_mode = models.CharField(
+        max_length=255, 
+        choices=[('Cash', 'Cash'), ('Bank Transfer', 'Bank Transfer'), ('UPI', 'UPI')]
+    )
+    payment_number = models.CharField(max_length=11, blank=True, null=True)
+    deposit_to = models.ForeignKey(Banking, on_delete=models.SET_NULL, null=True, blank=True)
+    reference = models.CharField(max_length=255, blank=True, null=True)
+    date = models.DateField()
+    invoice_no = models.ForeignKey(Invoice, on_delete=models.SET_NULL, null=True, blank=True)
+    invoice_amount = models.IntegerField(default=0)  
+    amount_due = models.IntegerField(default=0)  
+    total = models.IntegerField(default=0)   
+
+    def __str__(self):
+        return f"Payment of {self.amount_received} for Invoice {self.invoice_no}"
+
+    
+
+class Vendors(models.Model):
+    company_name = models.CharField(max_length=255)
+    email = models.EmailField(unique=True)
+    location = models.CharField(max_length=255)
+    contact_person = models.CharField(max_length=255)
+    phone_number = models.IntegerField()   
+    opening_balance = models.IntegerField(default=0)   
+
+    def __str__(self):
+        return self.company_name
+
+    
+class Expenses(models.Model):
+    STATUS_CHOICES = [
+        ('paid', 'Paid'),
+        ('unpaid', 'Unpaid'),
+        ('partially_paid', 'Partially Paid'),
+    ]
+
+    PAYMENT_METHOD_CHOICES = [
+        ('Cash', 'Cash'),
+        ('Bank Transfer', 'Bank Transfer'),
+        ('UPI', 'UPI'),
+    ]
+
+    EXPENSE_TYPE_CHOICES = [
+        ('Goods', 'Goods'),
+        ('Service', 'Service'),
+    ]
+
+    date = models.DateField()
+    expense_account = models.CharField(max_length=255)
+    amount =  models.IntegerField()
+    paid_through = models.CharField(max_length=255, choices=PAYMENT_METHOD_CHOICES)
+    expense_type = models.CharField(max_length=255, choices=EXPENSE_TYPE_CHOICES)
+    vendor = models.ForeignKey(Vendors, on_delete=models.SET_NULL, null=True, blank=True)
+    customer_name = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unpaid')
+
+    class Meta:
+        verbose_name_plural = "Expenses"
+
+    def __str__(self):
+        return f"{self.expense_account} - {self.amount}"

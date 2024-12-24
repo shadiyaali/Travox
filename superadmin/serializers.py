@@ -21,7 +21,7 @@ class AdminSerializer(serializers.ModelSerializer):
 class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
-        fields = ['id', 'plan_name', 'duration' ]
+        fields = ['id', 'plan_name', 'duration' ,'rate']
         
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,4 +41,26 @@ class StaffSerializer(serializers.ModelSerializer):
         if password:
             validated_data['password'] = make_password(password)
         return Staff.objects.create(**validated_data)
-    
+
+class BankingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Banking
+        fields = '__all__'
+        
+class InvoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invoice
+        fields = '__all__'
+        
+class PaymentReceivedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentReceived
+        fields = '__all__' 
+class VendorsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vendors
+        fields = '__all__'
+class ExpensesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Expenses
+        fields = '__all__'
