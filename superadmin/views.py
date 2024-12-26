@@ -783,3 +783,15 @@ class ExpensesDetailAPIView(APIView):
 
         expense.delete()
         return Response({"detail": "Expense deleted."}, status=status.HTTP_204_NO_CONTENT)
+    
+class UserCountAPIView(APIView):
+    def get(self, request):
+        total_users = Users.objects.count()   
+        data = {'user_count': total_users}
+        return Response(data, status=status.HTTP_200_OK)
+    
+class AdminCountAPIView(APIView):
+    def get(self, request):
+        total_admins = Admin.objects.count()   
+        data = {'admin_count': total_admins}
+        return Response(data, status=status.HTTP_200_OK)

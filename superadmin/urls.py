@@ -43,4 +43,7 @@ urlpatterns = [
    path('vendors/<int:pk>/', VendorRetrieveUpdateDeleteAPIView.as_view(), name='vendor-retrieve-update-delete'), 
    path('expenses/', ExpensesListCreateAPIView.as_view(), name='expenses-list-create'),
    path('expenses/<int:pk>/', ExpensesDetailAPIView.as_view(), name='expenses-detail'),
+   path('user_count/', UserCountAPIView.as_view(), name='user-count'),
+   path('admin_count/', AdminCountAPIView.as_view(), name='user-count'),
+   
 ] 
