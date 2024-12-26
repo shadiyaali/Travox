@@ -45,5 +45,5 @@ urlpatterns = [
    path('expenses/<int:pk>/', ExpensesDetailAPIView.as_view(), name='expenses-detail'),
    path('user_count/', UserCountAPIView.as_view(), name='user-count'),
    path('admin_count/', AdminCountAPIView.as_view(), name='user-count'),
-   
+   path('staff_count/', StaffCountAPIView.as_view(), name='user-count'),
 ] 

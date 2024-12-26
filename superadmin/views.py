@@ -795,3 +795,9 @@ class AdminCountAPIView(APIView):
         total_admins = Admin.objects.count()   
         data = {'admin_count': total_admins}
         return Response(data, status=status.HTTP_200_OK)
+    
+class StaffCountAPIView(APIView):
+    def get(self, request):
+        total_staff = Staff.objects.count()   
+        data = {'staff_count': total_staff}
+        return Response(data, status=status.HTTP_200_OK)
